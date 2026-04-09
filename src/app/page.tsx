@@ -41,21 +41,18 @@ export default function Home() {
     }
   }, [contest, router]);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-500">로딩 중...</p>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gray-50">
       <Hero contest={contest} />
       {contest && contest.status === "active" && (
         <VoteTimer contest={contest} onTimeUp={handleTimeUp} />
       )}
-      {contest ? (
+      {loading ? (
+        <div className="py-20 text-center">
+          <div className="inline-block w-8 h-8 border-4 border-[#2E75B6] border-t-transparent rounded-full animate-spin" />
+          <p className="mt-3 text-gray-500">작품을 불러오는 중...</p>
+        </div>
+      ) : contest ? (
         <ImageGallery
           contestDate={contest.date}
           canVote={contest.status === "active"}

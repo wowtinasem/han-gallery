@@ -7,11 +7,8 @@ import {
   updateDoc,
   deleteDoc,
   query,
-  orderBy,
-  where,
   increment,
   Timestamp,
-  limit,
 } from "firebase/firestore";
 import { db } from "./firebase";
 import { Contest, ContestImage, Vote } from "@/types";
@@ -40,33 +37,33 @@ export async function getContest(
 export async function getActiveContest(): Promise<
   (Contest & { id: string }) | null
 > {
-  const q = query(
-    collection(db, "contests"),
-    where("status", "in", ["active", "pending"])
-  );
-  const snap = await getDocs(q);
+  const snap = await getDocs(collection(db, "contests"));
   if (snap.empty) return null;
-  // Sort client-side by createdAt desc
+  const filtered = snap.docs
+    .filter((d) => {
+      const s = (d.data() as Contest).status;
+      return s === "active" || s === "pending";
+    })
+    .sort((a, b) => {
+      const aTime = (a.data() as Contest).createdAt?.toMillis() || 0;
+      const bTime = (b.data() as Contest).createdAt?.toMillis() || 0;
+      return bTime - aTime;
+    });
+  if (filtered.length === 0) return null;
+  return { id: filtered[0].id, ...(filtered[0].data() as Contest) };
+}
+
+export async function getLatestContest(): Promise<
+  (Contest & { id: string }) | null
+> {
+  const snap = await getDocs(collection(db, "contests"));
+  if (snap.empty) return null;
   const sorted = snap.docs.sort((a, b) => {
     const aTime = (a.data() as Contest).createdAt?.toMillis() || 0;
     const bTime = (b.data() as Contest).createdAt?.toMillis() || 0;
     return bTime - aTime;
   });
   return { id: sorted[0].id, ...(sorted[0].data() as Contest) };
-}
-
-export async function getLatestContest(): Promise<
-  (Contest & { id: string }) | null
-> {
-  const q = query(
-    collection(db, "contests"),
-    orderBy("createdAt", "desc"),
-    limit(1)
-  );
-  const snap = await getDocs(q);
-  if (snap.empty) return null;
-  const docSnap = snap.docs[0];
-  return { id: docSnap.id, ...(docSnap.data() as Contest) };
 }
 
 export async function createContest(date: string): Promise<void> {
@@ -102,23 +99,23 @@ export async function updateContestTimes(
 export async function getContestImages(
   contestDate: string
 ): Promise<ContestImage[]> {
-  const q = query(
-    collection(db, "contests", contestDate, "images"),
-    orderBy("number", "asc")
+  const snap = await getDocs(
+    collection(db, "contests", contestDate, "images")
   );
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as ContestImage) }));
+  return snap.docs
+    .map((d) => ({ id: d.id, ...(d.data() as ContestImage) }))
+    .sort((a, b) => a.number - b.number);
 }
 
 export async function getContestImagesRanked(
   contestDate: string
 ): Promise<ContestImage[]> {
-  const q = query(
-    collection(db, "contests", contestDate, "images"),
-    orderBy("voteCount", "desc")
+  const snap = await getDocs(
+    collection(db, "contests", contestDate, "images")
   );
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as ContestImage) }));
+  return snap.docs
+    .map((d) => ({ id: d.id, ...(d.data() as ContestImage) }))
+    .sort((a, b) => b.voteCount - a.voteCount);
 }
 
 export async function addContestImage(
@@ -175,7 +172,12 @@ export async function getUserVote(
 // ===== Archive =====
 
 export async function getContestList(): Promise<(Contest & { id: string })[]> {
-  const q = query(collection(db, "contests"), orderBy("createdAt", "desc"));
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Contest) }));
+  const snap = await getDocs(collection(db, "contests"));
+  return snap.docs
+    .map((d) => ({ id: d.id, ...(d.data() as Contest) }))
+    .sort((a, b) => {
+      const aTime = a.createdAt?.toMillis() || 0;
+      const bTime = b.createdAt?.toMillis() || 0;
+      return bTime - aTime;
+    });
 }
