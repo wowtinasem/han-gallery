@@ -1,0 +1,20 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /contests/{date} {
+      allow read: if true;
+      allow write: if true;
+
+      match /images/{imageId} {
+        allow read: if true;
+        allow write: if true;
+      }
+
+      match /votes/{visitorId} {
+        allow read: if true;
+        allow create: if !exists(/databases/$(database)/documents/contests/$(date)/votes/$(visitorId));
+        allow update, delete: if false;
+      }
+    }
+  }
+}
