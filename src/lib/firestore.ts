@@ -169,6 +169,22 @@ export async function getUserVote(
   return snap.data() as Vote;
 }
 
+// ===== Admin =====
+
+export async function getAdminPassword(): Promise<string> {
+  const snap = await getDoc(doc(db, "settings", "admin"));
+  if (!snap.exists()) {
+    // Initialize with default password
+    await setDoc(doc(db, "settings", "admin"), { password: "000000" });
+    return "000000";
+  }
+  return snap.data().password;
+}
+
+export async function updateAdminPassword(newPassword: string): Promise<void> {
+  await setDoc(doc(db, "settings", "admin"), { password: newPassword });
+}
+
 // ===== Archive =====
 
 export async function getContestList(): Promise<(Contest & { id: string })[]> {

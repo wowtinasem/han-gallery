@@ -71,7 +71,7 @@ export default function AdminPage() {
       });
       const data = await res.json();
       if (res.ok) {
-        alert("비밀번호가 변경되었습니다. 다음 배포 후 적용됩니다.");
+        alert("비밀번호가 변경되었습니다.");
         setShowPwModal(false);
         setCurrentPw("");
         setNewPw("");
