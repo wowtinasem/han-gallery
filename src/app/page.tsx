@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Contest } from "@/types";
-import { getActiveContest, getLatestContest, updateContestStatus } from "@/lib/firestore";
+import { getActiveContest, updateContestStatus } from "@/lib/firestore";
 import Hero from "@/components/Hero";
 import VoteTimer from "@/components/VoteTimer";
 import ImageGallery from "@/components/ImageGallery";
@@ -17,8 +17,7 @@ export default function Home() {
 
   const loadContest = useCallback(async () => {
     try {
-      let c = await getActiveContest();
-      if (!c) c = await getLatestContest();
+      const c = await getActiveContest();
       setContest(c);
     } catch (error) {
       console.error("Failed to load contest:", error);
