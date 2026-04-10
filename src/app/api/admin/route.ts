@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAdminPassword } from "@/lib/firestore";
 
 export async function POST(request: NextRequest) {
   try {
     const { password } = await request.json();
-    const adminPassword = await getAdminPassword();
 
-    if (password === adminPassword) {
+    if (password === process.env.ADMIN_PASSWORD) {
       return NextResponse.json({ success: true });
     }
 
@@ -14,9 +12,9 @@ export async function POST(request: NextRequest) {
       { error: "Invalid password" },
       { status: 401 }
     );
-  } catch (e) {
+  } catch {
     return NextResponse.json(
-      { error: "Server error", detail: String(e) },
+      { error: "Server error" },
       { status: 500 }
     );
   }
