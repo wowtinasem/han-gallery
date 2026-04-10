@@ -21,13 +21,28 @@ export default function AdminSettings({
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    const now = new Date();
+    const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
+
     if (contest.startTime) {
       const st = contest.startTime.toDate();
+      // 기본 Timestamp(now)와 같은 경우 현재 시각으로 대체
       setStartTime(toLocalDatetimeString(st));
+    } else {
+      setStartTime(toLocalDatetimeString(now));
     }
+
     if (contest.endTime) {
       const et = contest.endTime.toDate();
-      setEndTime(toLocalDatetimeString(et));
+      const st = contest.startTime?.toDate();
+      // startTime과 endTime이 같으면 아직 설정 안 된 것으로 간주
+      if (st && Math.abs(et.getTime() - st.getTime()) < 1000) {
+        setEndTime(toLocalDatetimeString(oneHourLater));
+      } else {
+        setEndTime(toLocalDatetimeString(et));
+      }
+    } else {
+      setEndTime(toLocalDatetimeString(oneHourLater));
     }
   }, [contest]);
 
