@@ -14,9 +14,9 @@ export async function POST(request: NextRequest) {
       { error: "Invalid password" },
       { status: 401 }
     );
-  } catch {
+  } catch (e) {
     return NextResponse.json(
-      { error: "Server error" },
+      { error: "Server error", detail: String(e) },
       { status: 500 }
     );
   }
