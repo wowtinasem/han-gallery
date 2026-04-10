@@ -48,6 +48,8 @@ export default function ImageGallery({
 
   const handleVote = async (imageId: string) => {
     if (voting || votedImageId) return;
+    const target = images.find((img) => img.id === imageId);
+    if (!confirm(`#${String(target?.number || 0).padStart(2, "0")} ${target?.nickname || ""} 작품에 투표하시겠습니까?\n\n투표는 한 번만 가능합니다.`)) return;
     setVoting(true);
 
     try {
