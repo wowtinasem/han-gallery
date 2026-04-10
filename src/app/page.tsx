@@ -18,7 +18,7 @@ export default function Home() {
   const loadContest = useCallback(async () => {
     try {
       const c = await getActiveContest();
-      setContest(c);
+      setContest(c && c.status === "active" ? c : null);
     } catch (error) {
       console.error("Failed to load contest:", error);
     } finally {
