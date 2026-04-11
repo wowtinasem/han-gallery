@@ -67,6 +67,26 @@ export async function getLatestContest(): Promise<
 }
 
 export async function createContest(date: string): Promise<void> {
+  // 같은 날짜의 기존 콘테스트가 있으면 이미지/투표 서브컬렉션 삭제
+  const existing = await getDoc(doc(db, "contests", date));
+  if (existing.exists()) {
+    try {
+      const imageSnap = await getDocs(collection(db, "contests", date, "images"));
+      for (const d of imageSnap.docs) {
+        await deleteDoc(d.ref);
+      }
+    } catch {
+      // ignore
+    }
+    try {
+      const voteSnap = await getDocs(collection(db, "contests", date, "votes"));
+      for (const d of voteSnap.docs) {
+        await deleteDoc(d.ref);
+      }
+    } catch {
+      // ignore
+    }
+  }
   await setDoc(doc(db, "contests", date), {
     date,
     status: "pending",

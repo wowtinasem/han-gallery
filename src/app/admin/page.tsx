@@ -119,9 +119,15 @@ export default function AdminPage() {
   }, [authenticated, loadContestData]);
 
   const handleCreateContest = async () => {
+    // 같은 날짜에 기존 콘테스트가 있으면 경고
+    const existing = archiveList.find((c) => c.date === newDate);
+    if (existing) {
+      if (!confirm(`${newDate}에 이미 콘테스트가 있습니다.\n기존 이미지와 투표 데이터가 모두 삭제되고 새로 시작됩니다.\n\n계속하시겠습니까?`)) return;
+    }
     try {
       await createContest(newDate);
       await loadContestData();
+      await loadArchiveList();
     } catch (error) {
       console.error(error);
       alert("콘테스트 생성 실패");
