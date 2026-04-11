@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Contest, ContestImage } from "@/types";
-import { getContestList, getContestImagesRanked } from "@/lib/firestore";
+import { getContestList, getContestImages } from "@/lib/firestore";
 
 export default function ArchiveList() {
   const [archiveList, setArchiveList] = useState<(Contest & { id: string })[]>(
@@ -14,6 +14,7 @@ export default function ArchiveList() {
   const [calendarMonth, setCalendarMonth] = useState(new Date().getMonth());
   const [calendarYear, setCalendarYear] = useState(new Date().getFullYear());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [selectedContest, setSelectedContest] = useState<(Contest & { id: string }) | null>(null);
   const [selectedImages, setSelectedImages] = useState<ContestImage[]>([]);
   const [imagesLoading, setImagesLoading] = useState(false);
 
@@ -34,14 +35,17 @@ export default function ArchiveList() {
   const handleSelectDate = async (dateStr: string) => {
     if (selectedDate === dateStr) {
       setSelectedDate(null);
+      setSelectedContest(null);
       setSelectedImages([]);
       return;
     }
     setSelectedDate(dateStr);
     setImagesLoading(true);
     try {
-      const ranked = await getContestImagesRanked(dateStr);
-      setSelectedImages(ranked);
+      const contest = archiveList.find((c) => c.date === dateStr) || null;
+      setSelectedContest(contest);
+      const imgs = await getContestImages(dateStr);
+      setSelectedImages(imgs);
     } catch (error) {
       console.error(error);
     } finally {
@@ -184,63 +188,83 @@ export default function ArchiveList() {
             </div>
           ) : (
             <>
-              {/* Top 3 Preview */}
-              <div className="grid grid-cols-3 gap-px bg-gray-100">
-                {selectedImages.slice(0, 3).map((image, idx) => (
-                  <div key={image.id} className="relative aspect-square">
-                    <Image
-                      src={image.imageUrl}
-                      alt={image.nickname}
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 768px) 33vw, 250px"
-                    />
-                    <div className="absolute top-2 left-2 bg-black/60 text-white text-xs font-bold px-2 py-1 rounded-md">
-                      {trophyEmoji[idx]} {idx + 1}등
-                    </div>
-                    <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent p-2">
-                      <p className="text-white text-xs font-medium truncate">
-                        {image.nickname} · {image.voteCount}표
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              {/* Top 3 Preview - 관리자 선정 순위 기준 */}
+              {(() => {
+                const rankedIds = [
+                  selectedContest?.winnerId,
+                  selectedContest?.secondPlaceId,
+                  selectedContest?.thirdPlaceId,
+                ].filter(Boolean);
+                const top3 = rankedIds
+                  .map((id) => selectedImages.find((img) => img.id === id))
+                  .filter((img): img is ContestImage => !!img);
+                const restImages = selectedImages.filter(
+                  (img) => !rankedIds.includes(img.id)
+                );
 
-              {/* All Images Grid */}
-              {selectedImages.length > 3 && (
-                <div className="p-4">
-                  <p className="text-sm text-gray-500 mb-3">
-                    전체 작품 ({selectedImages.length}개)
-                  </p>
-                  <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2">
-                    {selectedImages.slice(3).map((img) => (
-                      <div
-                        key={img.id}
-                        className="relative bg-gray-50 rounded-lg overflow-hidden"
-                      >
-                        <div className="relative aspect-square">
-                          <Image
-                            src={img.imageUrl}
-                            alt={img.nickname}
-                            fill
-                            className="object-cover"
-                            sizes="(max-width: 640px) 25vw, 16vw"
-                          />
-                        </div>
-                        <div className="p-1">
-                          <p className="text-[10px] font-bold text-[#2E75B6]">
-                            #{String(img.number).padStart(2, "0")}
-                          </p>
-                          <p className="text-[10px] text-gray-600 truncate">
-                            {img.nickname}
-                          </p>
+                return (
+                  <>
+                    {top3.length > 0 && (
+                      <div className="grid grid-cols-3 gap-px bg-gray-100">
+                        {top3.map((image, idx) => (
+                          <div key={image.id} className="relative aspect-square">
+                            <Image
+                              src={image.imageUrl}
+                              alt={image.nickname}
+                              fill
+                              className="object-cover"
+                              sizes="(max-width: 768px) 33vw, 250px"
+                            />
+                            <div className="absolute top-2 left-2 bg-black/60 text-white text-xs font-bold px-2 py-1 rounded-md">
+                              {trophyEmoji[idx]} {idx + 1}위
+                            </div>
+                            <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent p-2">
+                              <p className="text-white text-xs font-medium truncate">
+                                {image.nickname}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* All Images Grid */}
+                    {restImages.length > 0 && (
+                      <div className="p-4">
+                        <p className="text-sm text-gray-500 mb-3">
+                          전체 작품 ({selectedImages.length}개)
+                        </p>
+                        <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2">
+                          {restImages.map((img) => (
+                            <div
+                              key={img.id}
+                              className="relative bg-gray-50 rounded-lg overflow-hidden"
+                            >
+                              <div className="relative aspect-square">
+                                <Image
+                                  src={img.imageUrl}
+                                  alt={img.nickname}
+                                  fill
+                                  className="object-cover"
+                                  sizes="(max-width: 640px) 25vw, 16vw"
+                                />
+                              </div>
+                              <div className="p-1">
+                                <p className="text-[10px] font-bold text-[#2E75B6]">
+                                  #{String(img.number).padStart(2, "0")}
+                                </p>
+                                <p className="text-[10px] text-gray-600 truncate">
+                                  {img.nickname}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+                    )}
+                  </>
+                );
+              })()}
 
               {/* View Full Result Link */}
               <div className="p-4 border-t text-center">
