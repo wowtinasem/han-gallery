@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Contest } from "@/types";
 import { getActiveContest, updateContestStatus } from "@/lib/firestore";
@@ -14,6 +14,7 @@ export default function Home() {
     null
   );
   const [loading, setLoading] = useState(true);
+  const autoTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const loadContest = useCallback(async () => {
     try {
@@ -29,6 +30,34 @@ export default function Home() {
   useEffect(() => {
     loadContest();
   }, [loadContest]);
+
+  // 자동 시작: pending 상태에서 startTime이 되면 자동으로 active로 변경
+  useEffect(() => {
+    if (!contest || contest.status !== "pending") {
+      if (autoTimerRef.current) clearInterval(autoTimerRef.current);
+      return;
+    }
+
+    const checkAutoStart = async () => {
+      if (!contest.startTime) return;
+      const st = contest.startTime.toDate();
+      if (new Date() >= st) {
+        try {
+          await updateContestStatus(contest.date, "active");
+          loadContest();
+        } catch (error) {
+          console.error("Auto-start failed:", error);
+        }
+      }
+    };
+
+    checkAutoStart();
+    autoTimerRef.current = setInterval(checkAutoStart, 5000);
+
+    return () => {
+      if (autoTimerRef.current) clearInterval(autoTimerRef.current);
+    };
+  }, [contest, loadContest]);
 
   const handleTimeUp = useCallback(async () => {
     if (!contest) return;

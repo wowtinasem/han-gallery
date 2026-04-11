@@ -169,13 +169,19 @@ export default function ArchiveList() {
         )}
       </div>
 
-      {/* Selected Date Contest */}
+      {/* Selected Date Contest - Gallery Style */}
       {selectedDate && (
         <div className="bg-white rounded-xl shadow-md overflow-hidden">
-          <div className="p-5 border-b">
+          <div className="p-5 border-b flex items-center justify-between">
             <h3 className="font-bold text-lg text-[#1B3A5C]">
               {selectedDate} 콘테스트
             </h3>
+            <Link
+              href={`/archive/${selectedDate}`}
+              className="text-sm text-[#2E75B6] hover:underline font-semibold"
+            >
+              상세보기 →
+            </Link>
           </div>
 
           {imagesLoading ? (
@@ -187,8 +193,8 @@ export default function ArchiveList() {
               등록된 이미지가 없습니다.
             </div>
           ) : (
-            <>
-              {/* Top 3 Preview - 관리자 선정 순위 기준 */}
+            <div className="p-4">
+              {/* 관리자 선정 순위 배지 */}
               {(() => {
                 const rankedIds = [
                   selectedContest?.winnerId,
@@ -198,84 +204,61 @@ export default function ArchiveList() {
                 const top3 = rankedIds
                   .map((id) => selectedImages.find((img) => img.id === id))
                   .filter((img): img is ContestImage => !!img);
-                const restImages = selectedImages.filter(
-                  (img) => !rankedIds.includes(img.id)
-                );
 
-                return (
-                  <>
-                    {top3.length > 0 && (
-                      <div className="grid grid-cols-3 gap-px bg-gray-100">
-                        {top3.map((image, idx) => (
-                          <div key={image.id} className="relative aspect-square">
-                            <Image
-                              src={image.imageUrl}
-                              alt={image.nickname}
-                              fill
-                              className="object-cover"
-                              sizes="(max-width: 768px) 33vw, 250px"
-                            />
-                            <div className="absolute top-2 left-2 bg-black/60 text-white text-xs font-bold px-2 py-1 rounded-md">
-                              {trophyEmoji[idx]} {idx + 1}위
-                            </div>
-                            <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent p-2">
-                              <p className="text-white text-xs font-medium truncate">
-                                {image.nickname}
-                              </p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* All Images Grid */}
-                    {restImages.length > 0 && (
-                      <div className="p-4">
-                        <p className="text-sm text-gray-500 mb-3">
-                          전체 작품 ({selectedImages.length}개)
-                        </p>
-                        <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2">
-                          {restImages.map((img) => (
-                            <div
-                              key={img.id}
-                              className="relative bg-gray-50 rounded-lg overflow-hidden"
-                            >
-                              <div className="relative aspect-square">
-                                <Image
-                                  src={img.imageUrl}
-                                  alt={img.nickname}
-                                  fill
-                                  className="object-cover"
-                                  sizes="(max-width: 640px) 25vw, 16vw"
-                                />
-                              </div>
-                              <div className="p-1">
-                                <p className="text-[10px] font-bold text-[#2E75B6]">
-                                  #{String(img.number).padStart(2, "0")}
-                                </p>
-                                <p className="text-[10px] text-gray-600 truncate">
-                                  {img.nickname}
-                                </p>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </>
-                );
+                return top3.length > 0 ? (
+                  <div className="flex gap-2 mb-4 flex-wrap">
+                    {top3.map((img, idx) => (
+                      <span key={img.id} className={`text-xs font-bold px-3 py-1 rounded-full ${
+                        idx === 0 ? "bg-yellow-100 text-yellow-800" : idx === 1 ? "bg-gray-100 text-gray-700" : "bg-orange-100 text-orange-800"
+                      }`}>
+                        {trophyEmoji[idx]} {img.nickname}
+                      </span>
+                    ))}
+                  </div>
+                ) : null;
               })()}
 
-              {/* View Full Result Link */}
-              <div className="p-4 border-t text-center">
-                <Link
-                  href={`/archive/${selectedDate}`}
-                  className="inline-block px-6 py-2.5 bg-[#2E75B6] text-white rounded-lg font-semibold hover:bg-[#1B3A5C] transition-colors text-sm"
-                >
-                  전체 결과 보기 →
-                </Link>
+              {/* 이미지 갤러리 그리드 */}
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                {selectedImages.map((img) => {
+                  const rank = selectedContest?.winnerId === img.id ? 1
+                    : selectedContest?.secondPlaceId === img.id ? 2
+                    : selectedContest?.thirdPlaceId === img.id ? 3 : 0;
+                  const ringClass = rank === 1 ? "ring-2 ring-yellow-400" : rank === 2 ? "ring-2 ring-gray-400" : rank === 3 ? "ring-2 ring-orange-400" : "";
+
+                  return (
+                    <div
+                      key={img.id}
+                      className={`group relative rounded-lg overflow-hidden ${ringClass}`}
+                    >
+                      <div className="relative aspect-square">
+                        <Image
+                          src={img.imageUrl}
+                          alt={img.nickname}
+                          fill
+                          className="object-cover group-hover:scale-105 transition-transform duration-300"
+                          sizes="(max-width: 640px) 33vw, 20vw"
+                        />
+                        {rank > 0 && (
+                          <div className="absolute top-1 left-1 bg-black/60 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+                            {trophyEmoji[rank - 1]} {rank}위
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <div className="absolute bottom-0 inset-x-0 p-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <p className="text-white text-[10px] font-semibold truncate">
+                            #{String(img.number).padStart(2, "0")} {img.nickname}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            </>
+              <p className="text-center text-xs text-gray-400 mt-3">
+                {selectedImages.length}개 작품
+              </p>
+            </div>
           )}
         </div>
       )}
