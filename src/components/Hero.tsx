@@ -45,13 +45,13 @@ export default function Hero({ contest }: HeroProps) {
         <>
           <StatusBadge status={contest.status} />
           <p className="mt-1 text-blue-200 text-xs">{contest.date}</p>
-          {contest.status === "pending" && contest.startTime && contest.endTime && (
+          {(contest.status === "pending" || contest.status === "active") && contest.startTime && contest.endTime && (
             <div className="mt-3 text-center">
               <p className="text-blue-200 text-xs">
                 투표 시작: <span className="text-white font-semibold">{formatTime(contest.startTime.toDate())}</span>
               </p>
               <p className="text-blue-200 text-xs mt-1">
-                투표 종료: <span className="text-white font-semibold">{formatTime(contest.endTime.toDate())}</span>
+                투표 마감: <span className="text-white font-semibold">{formatTime(contest.endTime.toDate())}</span>
               </p>
             </div>
           )}
