@@ -39,19 +39,21 @@ export default function ImageCard({
         <p className="font-medium text-gray-800 text-sm truncate mb-2">
           {image.nickname}
         </p>
-        {isVoted ? (
-          <div className="w-full py-2 rounded-lg bg-[#2E75B6] text-white text-center text-sm font-semibold">
-            ✓ 투표함
-          </div>
-        ) : (
-          <button
-            onClick={() => image.id && onVote(image.id)}
-            disabled={!canVote}
-            className="w-full py-2 rounded-lg bg-[#2E75B6] text-white text-sm font-semibold hover:bg-[#1B3A5C] transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
-          >
-            투표하기
-          </button>
-        )}
+        {canVote || isVoted ? (
+          isVoted ? (
+            <div className="w-full py-2 rounded-lg bg-[#2E75B6] text-white text-center text-sm font-semibold">
+              ✓ 투표함
+            </div>
+          ) : (
+            <button
+              onClick={() => image.id && onVote(image.id)}
+              disabled={!canVote}
+              className="w-full py-2 rounded-lg bg-[#2E75B6] text-white text-sm font-semibold hover:bg-[#1B3A5C] transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+            >
+              투표하기
+            </button>
+          )
+        ) : null}
       </div>
     </div>
   );

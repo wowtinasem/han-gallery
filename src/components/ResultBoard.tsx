@@ -138,7 +138,7 @@ export default function ResultBoard({ contestDate, isEnded, winnerId, secondPlac
           <h3 className="text-lg font-bold text-[#1B3A5C] mb-4 text-center">
             Gallery
           </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
             {rest.map((image) => (
               <div
                 key={image.id}
