@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Contest } from "@/types";
 import {
   updateContestStatus,
@@ -19,6 +19,7 @@ export default function AdminSettings({
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [saving, setSaving] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     const now = new Date();
@@ -26,7 +27,6 @@ export default function AdminSettings({
 
     if (contest.startTime) {
       const st = contest.startTime.toDate();
-      // 기본 Timestamp(now)와 같은 경우 현재 시각으로 대체
       setStartTime(toLocalDatetimeString(st));
     } else {
       setStartTime(toLocalDatetimeString(now));
@@ -35,7 +35,6 @@ export default function AdminSettings({
     if (contest.endTime) {
       const et = contest.endTime.toDate();
       const st = contest.startTime?.toDate();
-      // startTime과 endTime이 같으면 아직 설정 안 된 것으로 간주
       if (st && Math.abs(et.getTime() - st.getTime()) < 1000) {
         setEndTime(toLocalDatetimeString(oneHourLater));
       } else {
@@ -45,6 +44,31 @@ export default function AdminSettings({
       setEndTime(toLocalDatetimeString(oneHourLater));
     }
   }, [contest]);
+
+  // Auto-start: check every 10 seconds if startTime has been reached
+  useEffect(() => {
+    if (contest.status !== "pending") return;
+
+    const checkAutoStart = async () => {
+      if (!contest.startTime) return;
+      const st = contest.startTime.toDate();
+      if (new Date() >= st) {
+        try {
+          await updateContestStatus(contest.date, "active");
+          onUpdate();
+        } catch (error) {
+          console.error("Auto-start failed:", error);
+        }
+      }
+    };
+
+    checkAutoStart();
+    timerRef.current = setInterval(checkAutoStart, 10000);
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [contest.status, contest.startTime, contest.date, onUpdate]);
 
   function toLocalDatetimeString(date: Date): string {
     const offset = date.getTimezoneOffset() * 60000;
@@ -74,6 +98,18 @@ export default function AdminSettings({
   };
 
   const handleStatusChange = async (status: Contest["status"]) => {
+    // "투표 시작" 버튼: 시작시간 전이면 확인
+    if (status === "active" && contest.startTime) {
+      const st = contest.startTime.toDate();
+      if (new Date() < st) {
+        const diff = st.getTime() - Date.now();
+        const mins = Math.ceil(diff / 60000);
+        if (!confirm(`설정된 시작 시간까지 약 ${mins}분 남았습니다.\n정말 지금 투표를 시작하시겠습니까?`)) {
+          return;
+        }
+      }
+    }
+
     setSaving(true);
     try {
       await updateContestStatus(contest.date, status);
@@ -166,6 +202,11 @@ export default function AdminSettings({
               ? "투표 종료"
               : "준비중"}
         </span>
+        {contest.status === "pending" && contest.startTime && (
+          <span className="ml-2 text-blue-500">
+            (시작 시간이 되면 자동으로 투표가 시작됩니다)
+          </span>
+        )}
       </p>
     </div>
   );

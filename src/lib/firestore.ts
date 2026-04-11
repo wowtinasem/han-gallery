@@ -185,6 +185,48 @@ export async function updateAdminPassword(newPassword: string): Promise<void> {
   await setDoc(doc(db, "settings", "admin"), { password: newPassword });
 }
 
+export async function setContestWinner(
+  date: string,
+  imageId: string,
+  rank: 1 | 2 | 3 = 1
+): Promise<void> {
+  const field = rank === 1 ? "winnerId" : rank === 2 ? "secondPlaceId" : "thirdPlaceId";
+  await updateDoc(doc(db, "contests", date), { [field]: imageId });
+}
+
+export async function clearContestRank(
+  date: string,
+  rank: 1 | 2 | 3
+): Promise<void> {
+  const { deleteField } = await import("firebase/firestore");
+  const field = rank === 1 ? "winnerId" : rank === 2 ? "secondPlaceId" : "thirdPlaceId";
+  await updateDoc(doc(db, "contests", date), { [field]: deleteField() });
+}
+
+export async function deleteContest(date: string): Promise<void> {
+  // Delete subcollections first (ignore errors for empty collections)
+  try {
+    const imageSnap = await getDocs(collection(db, "contests", date, "images"));
+    for (const d of imageSnap.docs) {
+      await deleteDoc(d.ref);
+    }
+  } catch {
+    // ignore
+  }
+
+  try {
+    const voteSnap = await getDocs(collection(db, "contests", date, "votes"));
+    for (const d of voteSnap.docs) {
+      await deleteDoc(d.ref);
+    }
+  } catch {
+    // ignore
+  }
+
+  // Delete contest document
+  await deleteDoc(doc(db, "contests", date));
+}
+
 // ===== Archive =====
 
 export async function getContestList(): Promise<(Contest & { id: string })[]> {

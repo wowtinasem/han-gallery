@@ -44,8 +44,8 @@ export default function ResultPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="py-10 bg-gradient-to-r from-[#030321] to-[#0a0a4a] text-white flex flex-col items-center justify-center">
-        <h1 className="text-7xl font-bold">한콘연 오늘의 Best Image Top30</h1>
-        <p className="text-lg mt-2 mb-2">매일 만나는 최고의 순간 | DAILY HIGH-RESOLUTION SELECTION</p>
+        <h1 className="text-2xl sm:text-5xl font-bold text-center px-4">한콘연 오늘의 Best Image Top30</h1>
+        <p className="text-xs sm:text-lg mt-2 mb-2 text-center px-4">매일 만나는 최고의 순간 | DAILY HIGH-RESOLUTION SELECTION</p>
         <h2 className="text-xl font-bold mb-2">콘테스트 결과</h2>
         <p className="text-blue-200">{contest.date}</p>
         {contest.status !== "ended" && (
@@ -54,7 +54,7 @@ export default function ResultPage() {
           </p>
         )}
       </div>
-      <ResultBoard contestDate={contest.date} isEnded={contest.status === "ended"} />
+      <ResultBoard contestDate={contest.date} isEnded={contest.status === "ended"} winnerId={contest.winnerId} secondPlaceId={contest.secondPlaceId} thirdPlaceId={contest.thirdPlaceId} />
     </div>
   );
 }

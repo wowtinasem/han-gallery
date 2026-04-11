@@ -43,7 +43,7 @@ export default function ArchiveDetailPage() {
       <div className="min-h-screen flex items-center justify-center flex-col gap-4">
         <p className="text-gray-500">해당 날짜의 콘테스트를 찾을 수 없습니다.</p>
         <Link href="/archive" className="text-[#2E75B6] hover:underline">
-          ← 아카이브로 돌아가기
+          ← 갤러리로 돌아가기
         </Link>
       </div>
     );
@@ -56,12 +56,12 @@ export default function ArchiveDetailPage() {
           href="/archive"
           className="text-blue-200 hover:text-white text-sm mb-2 inline-block"
         >
-          ← 아카이브
+          ← 갤러리
         </Link>
         <h1 className="text-3xl font-bold mb-2">{date} 콘테스트</h1>
         <p className="text-blue-200">최종 결과</p>
       </div>
-      <ResultBoard contestDate={date} isEnded={contest.status === "ended"} />
+      <ResultBoard contestDate={date} isEnded={contest.status === "ended"} winnerId={contest.winnerId} secondPlaceId={contest.secondPlaceId} thirdPlaceId={contest.thirdPlaceId} />
       <div className="border-t">
         <div className="max-w-6xl mx-auto px-4 py-6">
           <h2 className="text-xl font-bold text-[#1B3A5C] mb-4">
