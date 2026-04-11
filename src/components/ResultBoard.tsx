@@ -135,29 +135,31 @@ export default function ResultBoard({ contestDate, isEnded, winnerId, secondPlac
       {/* 전체 작품 갤러리 */}
       {rest.length > 0 && (
         <>
-          <h3 className="text-lg font-bold text-[#1B3A5C] mb-4 text-center">
-            Gallery
+          <h3 className="text-sm font-bold text-gray-500 mb-4 text-center">
+            전체 작품 ({images.length}개)
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
             {rest.map((image) => (
               <div
                 key={image.id}
-                className="group relative bg-white rounded-lg shadow overflow-hidden hover:shadow-lg transition-shadow"
+                className="bg-white rounded-xl shadow-md overflow-hidden"
               >
                 <div className="relative aspect-square">
                   <Image
                     src={image.imageUrl}
                     alt={image.nickname}
                     fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-300"
-                    sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 20vw"
+                    className="object-cover"
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 33vw, 20vw"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <div className="absolute bottom-0 inset-x-0 p-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <p className="text-white text-xs font-semibold truncate">
-                      #{String(image.number).padStart(2, "0")} {image.nickname}
-                    </p>
+                  <div className="absolute top-2 left-2 bg-black/60 text-white text-xs font-bold px-2 py-1 rounded-md">
+                    #{String(image.number).padStart(2, "0")}
                   </div>
+                </div>
+                <div className="p-3 text-center">
+                  <p className="font-medium text-sm text-gray-800 truncate">
+                    {image.nickname}
+                  </p>
                 </div>
               </div>
             ))}

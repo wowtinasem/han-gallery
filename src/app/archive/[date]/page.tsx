@@ -6,7 +6,6 @@ import Link from "next/link";
 import { Contest } from "@/types";
 import { getContest } from "@/lib/firestore";
 import ResultBoard from "@/components/ResultBoard";
-import ImageGallery from "@/components/ImageGallery";
 
 export default function ArchiveDetailPage() {
   const params = useParams();
@@ -62,14 +61,6 @@ export default function ArchiveDetailPage() {
         <p className="text-blue-200">최종 결과</p>
       </div>
       <ResultBoard contestDate={date} isEnded={contest.status === "ended"} winnerId={contest.winnerId} secondPlaceId={contest.secondPlaceId} thirdPlaceId={contest.thirdPlaceId} />
-      <div className="border-t">
-        <div className="max-w-6xl mx-auto px-4 py-6">
-          <h2 className="text-xl font-bold text-[#1B3A5C] mb-4">
-            전체 작품
-          </h2>
-        </div>
-        <ImageGallery contestDate={date} canVote={false} />
-      </div>
     </div>
   );
 }

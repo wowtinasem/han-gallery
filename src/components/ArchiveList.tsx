@@ -1,10 +1,111 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import Image from "next/image";
 import { Contest, ContestImage } from "@/types";
 import { getContestList, getContestImages } from "@/lib/firestore";
+
+const trophyEmoji = ["🥇", "🥈", "🥉"];
+const rankColors = [
+  { ring: "ring-yellow-400", badge: "bg-yellow-400 text-yellow-900" },
+  { ring: "ring-gray-400", badge: "bg-gray-400 text-white" },
+  { ring: "ring-orange-400", badge: "bg-orange-400 text-white" },
+];
+
+function GalleryView({
+  contest,
+  images,
+}: {
+  contest: (Contest & { id: string }) | null;
+  images: ContestImage[];
+}) {
+  if (images.length === 0) {
+    return (
+      <div className="py-12 text-center text-gray-500">
+        등록된 이미지가 없습니다.
+      </div>
+    );
+  }
+
+  const rankedIds = [
+    contest?.winnerId,
+    contest?.secondPlaceId,
+    contest?.thirdPlaceId,
+  ].filter(Boolean);
+  const rankedImages = rankedIds
+    .map((id) => images.find((img) => img.id === id))
+    .filter((img): img is ContestImage => !!img);
+  const restImages = images.filter((img) => !rankedIds.includes(img.id));
+
+  return (
+    <div className="space-y-6">
+      {/* 1/2/3위 */}
+      {rankedImages.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {rankedImages.map((img, idx) => (
+            <div
+              key={img.id}
+              className={`bg-white rounded-xl shadow-md overflow-hidden ring-2 ${rankColors[idx].ring}`}
+            >
+              <div className="relative aspect-square">
+                <Image
+                  src={img.imageUrl}
+                  alt={img.nickname}
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 640px) 100vw, 33vw"
+                />
+                <div className={`absolute top-2 left-2 ${rankColors[idx].badge} text-xs font-bold px-2.5 py-1 rounded-full`}>
+                  {trophyEmoji[idx]} {idx + 1}위
+                </div>
+              </div>
+              <div className="p-3 text-center">
+                <p className="font-bold text-sm text-gray-800">
+                  #{String(img.number).padStart(2, "0")} {img.nickname}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* 전체 작품 */}
+      {restImages.length > 0 && (
+        <>
+          <h3 className="text-sm font-bold text-gray-500 text-center">
+            전체 작품 ({images.length}개)
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+            {restImages.map((img) => (
+              <div
+                key={img.id}
+                className="bg-white rounded-xl shadow-md overflow-hidden"
+              >
+                <div className="relative aspect-square">
+                  <Image
+                    src={img.imageUrl}
+                    alt={img.nickname}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 33vw, 20vw"
+                  />
+                  <div className="absolute top-2 left-2 bg-black/60 text-white text-xs font-bold px-2 py-1 rounded-md">
+                    #{String(img.number).padStart(2, "0")}
+                  </div>
+                </div>
+                <div className="p-3 text-center">
+                  <p className="font-medium text-sm text-gray-800 truncate">
+                    {img.nickname}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 export default function ArchiveList() {
   const [archiveList, setArchiveList] = useState<(Contest & { id: string })[]>(
@@ -18,11 +119,37 @@ export default function ArchiveList() {
   const [selectedImages, setSelectedImages] = useState<ContestImage[]>([]);
   const [imagesLoading, setImagesLoading] = useState(false);
 
+  const loadGallery = async (dateStr: string, contestList: (Contest & { id: string })[]) => {
+    setSelectedDate(dateStr);
+    setImagesLoading(true);
+    try {
+      const contest = contestList.find((c) => c.date === dateStr) || null;
+      setSelectedContest(contest);
+      const imgs = await getContestImages(dateStr);
+      setSelectedImages(imgs);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setImagesLoading(false);
+    }
+  };
+
   useEffect(() => {
     async function load() {
       try {
         const list = await getContestList();
-        setArchiveList(list.filter((c) => c.status === "ended"));
+        const ended = list.filter((c) => c.status === "ended");
+        setArchiveList(ended);
+
+        // 마지막 콘테스트 자동 선택
+        if (ended.length > 0) {
+          const latest = ended[0]; // createdAt 내림차순
+          // 캘린더를 해당 월로 이동
+          const [y, m] = latest.date.split("-").map(Number);
+          setCalendarYear(y);
+          setCalendarMonth(m - 1);
+          await loadGallery(latest.date, ended);
+        }
       } catch (error) {
         console.error("Failed to load archive:", error);
       } finally {
@@ -33,24 +160,8 @@ export default function ArchiveList() {
   }, []);
 
   const handleSelectDate = async (dateStr: string) => {
-    if (selectedDate === dateStr) {
-      setSelectedDate(null);
-      setSelectedContest(null);
-      setSelectedImages([]);
-      return;
-    }
-    setSelectedDate(dateStr);
-    setImagesLoading(true);
-    try {
-      const contest = archiveList.find((c) => c.date === dateStr) || null;
-      setSelectedContest(contest);
-      const imgs = await getContestImages(dateStr);
-      setSelectedImages(imgs);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setImagesLoading(false);
-    }
+    if (selectedDate === dateStr) return; // 같은 날짜 재클릭 무시
+    await loadGallery(dateStr, archiveList);
   };
 
   if (loading) {
@@ -79,13 +190,10 @@ export default function ArchiveList() {
     weeks.push(week);
   }
 
-  const trophyEmoji = ["🥇", "🥈", "🥉"];
-
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
+    <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
       {/* Calendar */}
-      <div className="bg-white rounded-xl shadow-md p-6 mb-6">
-        {/* Calendar Navigation */}
+      <div className="bg-white rounded-xl shadow-md p-6">
         <div className="flex items-center justify-between mb-4">
           <button
             onClick={() => {
@@ -118,7 +226,6 @@ export default function ArchiveList() {
           </button>
         </div>
 
-        {/* Calendar Grid */}
         <div className="grid grid-cols-7 text-center text-xs font-semibold text-gray-500 mb-1">
           {["일", "월", "화", "수", "목", "금", "토"].map((d) => (
             <div key={d} className="py-2">
@@ -169,96 +276,18 @@ export default function ArchiveList() {
         )}
       </div>
 
-      {/* Selected Date Contest - Gallery Style */}
+      {/* Gallery */}
       {selectedDate && (
-        <div className="bg-white rounded-xl shadow-md overflow-hidden">
-          <div className="p-5 border-b flex items-center justify-between">
-            <h3 className="font-bold text-lg text-[#1B3A5C]">
-              {selectedDate} 콘테스트
-            </h3>
-            <Link
-              href={`/archive/${selectedDate}`}
-              className="text-sm text-[#2E75B6] hover:underline font-semibold"
-            >
-              상세보기 →
-            </Link>
-          </div>
-
+        <div>
+          <h2 className="text-xl font-bold text-[#1B3A5C] mb-4">
+            {selectedDate} 콘테스트
+          </h2>
           {imagesLoading ? (
             <div className="py-12 text-center text-gray-500">
               이미지를 불러오는 중...
             </div>
-          ) : selectedImages.length === 0 ? (
-            <div className="py-12 text-center text-gray-500">
-              등록된 이미지가 없습니다.
-            </div>
           ) : (
-            <div className="p-4">
-              {/* 관리자 선정 순위 배지 */}
-              {(() => {
-                const rankedIds = [
-                  selectedContest?.winnerId,
-                  selectedContest?.secondPlaceId,
-                  selectedContest?.thirdPlaceId,
-                ].filter(Boolean);
-                const top3 = rankedIds
-                  .map((id) => selectedImages.find((img) => img.id === id))
-                  .filter((img): img is ContestImage => !!img);
-
-                return top3.length > 0 ? (
-                  <div className="flex gap-2 mb-4 flex-wrap">
-                    {top3.map((img, idx) => (
-                      <span key={img.id} className={`text-xs font-bold px-3 py-1 rounded-full ${
-                        idx === 0 ? "bg-yellow-100 text-yellow-800" : idx === 1 ? "bg-gray-100 text-gray-700" : "bg-orange-100 text-orange-800"
-                      }`}>
-                        {trophyEmoji[idx]} {img.nickname}
-                      </span>
-                    ))}
-                  </div>
-                ) : null;
-              })()}
-
-              {/* 이미지 갤러리 그리드 */}
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
-                {selectedImages.map((img) => {
-                  const rank = selectedContest?.winnerId === img.id ? 1
-                    : selectedContest?.secondPlaceId === img.id ? 2
-                    : selectedContest?.thirdPlaceId === img.id ? 3 : 0;
-                  const ringClass = rank === 1 ? "ring-2 ring-yellow-400" : rank === 2 ? "ring-2 ring-gray-400" : rank === 3 ? "ring-2 ring-orange-400" : "";
-
-                  return (
-                    <div
-                      key={img.id}
-                      className={`group relative rounded-lg overflow-hidden ${ringClass}`}
-                    >
-                      <div className="relative aspect-square">
-                        <Image
-                          src={img.imageUrl}
-                          alt={img.nickname}
-                          fill
-                          className="object-cover group-hover:scale-105 transition-transform duration-300"
-                          sizes="(max-width: 640px) 33vw, 20vw"
-                        />
-                        {rank > 0 && (
-                          <div className="absolute top-1 left-1 bg-black/60 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
-                            {trophyEmoji[rank - 1]} {rank}위
-                          </div>
-                        )}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                        <div className="absolute bottom-0 inset-x-0 p-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <p className="text-white text-[10px] font-semibold truncate">
-                            #{String(img.number).padStart(2, "0")} {img.nickname}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              <p className="text-center text-xs text-gray-400 mt-3">
-                {selectedImages.length}개 작품
-              </p>
-            </div>
+            <GalleryView contest={selectedContest} images={selectedImages} />
           )}
         </div>
       )}
