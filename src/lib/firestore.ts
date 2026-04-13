@@ -177,7 +177,12 @@ export async function castVote(
     }
 
     const newImageIds = [...imageIds, imageId];
-    await updateDoc(voteRef, { imageIds: newImageIds, votedAt: Timestamp.now() });
+    await setDoc(voteRef, {
+      fingerprint,
+      imageId: newImageIds[0],
+      imageIds: newImageIds,
+      votedAt: Timestamp.now(),
+    });
   } else {
     await setDoc(voteRef, {
       fingerprint,
