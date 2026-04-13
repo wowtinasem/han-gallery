@@ -2,9 +2,11 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { ContestImage } from "@/types";
-import { getContestImages, castVote, getUserVote } from "@/lib/firestore";
+import { getContestImages, castVote, getUserVoteIds } from "@/lib/firestore";
 import { getFingerprint } from "@/lib/fingerprint";
 import ImageCard from "./ImageCard";
+
+const MAX_VOTES = 3;
 
 interface ImageGalleryProps {
   contestDate: string;
@@ -16,7 +18,7 @@ export default function ImageGallery({
   canVote,
 }: ImageGalleryProps) {
   const [images, setImages] = useState<ContestImage[]>([]);
-  const [votedImageId, setVotedImageId] = useState<string | null>(null);
+  const [votedIds, setVotedIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [voting, setVoting] = useState(false);
 
@@ -25,15 +27,21 @@ export default function ImageGallery({
       const imgs = await getContestImages(contestDate);
       setImages(imgs);
 
-      // Check if user already voted
       const fp = await getFingerprint();
-      const existingVote = await getUserVote(contestDate, fp);
-      if (existingVote) {
-        setVotedImageId(existingVote.imageId);
+      const ids = await getUserVoteIds(contestDate, fp);
+      if (ids.length > 0) {
+        setVotedIds(ids);
       } else {
-        // Check localStorage backup
+        // localStorage 백업 확인 (하위 호환)
         const localVote = localStorage.getItem(`vote_${contestDate}`);
-        if (localVote) setVotedImageId(localVote);
+        if (localVote) {
+          try {
+            const parsed = JSON.parse(localVote);
+            setVotedIds(Array.isArray(parsed) ? parsed : [parsed]);
+          } catch {
+            setVotedIds([localVote]);
+          }
+        }
       }
     } catch (error) {
       console.error("Failed to load images:", error);
@@ -47,23 +55,24 @@ export default function ImageGallery({
   }, [loadData]);
 
   const handleVote = async (imageId: string) => {
-    if (voting || votedImageId) return;
+    if (voting || votedIds.length >= MAX_VOTES || votedIds.includes(imageId)) return;
     const target = images.find((img) => img.id === imageId);
-    if (!confirm(`#${String(target?.number || 0).padStart(2, "0")} ${target?.nickname || ""} 작품에 투표하시겠습니까?\n\n투표는 한 번만 가능합니다.`)) return;
+    const remaining = MAX_VOTES - votedIds.length;
+    if (!confirm(`#${String(target?.number || 0).padStart(2, "0")} ${target?.nickname || ""} 작품에 투표하시겠습니까?\n\n남은 투표: ${remaining}/${MAX_VOTES}`)) return;
     setVoting(true);
 
     try {
       const fp = await getFingerprint();
-      const success = await castVote(contestDate, fp, imageId);
+      const result = await castVote(contestDate, fp, imageId);
 
-      if (success) {
-        setVotedImageId(imageId);
-        localStorage.setItem(`vote_${contestDate}`, imageId);
-        // Refresh images to update vote counts
+      if (result.success) {
+        const newVotedIds = [...votedIds, imageId];
+        setVotedIds(newVotedIds);
+        localStorage.setItem(`vote_${contestDate}`, JSON.stringify(newVotedIds));
         const imgs = await getContestImages(contestDate);
         setImages(imgs);
       } else {
-        alert("이미 투표하셨습니다.");
+        alert(result.reason || "투표에 실패했습니다.");
       }
     } catch (error) {
       console.error("Vote error:", error);
@@ -89,15 +98,25 @@ export default function ImageGallery({
     );
   }
 
+  const votesFull = votedIds.length >= MAX_VOTES;
+
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
+      {canVote && (
+        <div className="text-center mb-4">
+          <p className="text-sm text-gray-600">
+            투표 현황: <span className="font-bold text-[#2E75B6]">{votedIds.length}</span> / {MAX_VOTES}
+            {votesFull && <span className="ml-2 text-green-600 font-semibold">투표 완료!</span>}
+          </p>
+        </div>
+      )}
       <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
         {images.map((image) => (
           <ImageCard
             key={image.id}
             image={image}
-            isVoted={votedImageId === image.id}
-            canVote={canVote && !votedImageId && !voting}
+            isVoted={votedIds.includes(image.id || "")}
+            canVote={canVote && !votesFull && !votedIds.includes(image.id || "") && !voting}
             onVote={handleVote}
           />
         ))}

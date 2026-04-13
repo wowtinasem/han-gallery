@@ -161,32 +161,48 @@ export async function castVote(
   contestDate: string,
   fingerprint: string,
   imageId: string
-): Promise<boolean> {
+): Promise<{ success: boolean; reason?: string }> {
   const voteRef = doc(db, "contests", contestDate, "votes", fingerprint);
   const existing = await getDoc(voteRef);
-  if (existing.exists()) return false;
 
-  await setDoc(voteRef, {
-    fingerprint,
-    imageId,
-    votedAt: Timestamp.now(),
-  });
+  if (existing.exists()) {
+    const data = existing.data();
+    const imageIds: string[] = data.imageIds || (data.imageId ? [data.imageId] : []);
+
+    if (imageIds.includes(imageId)) {
+      return { success: false, reason: "이미 이 작품에 투표하셨습니다." };
+    }
+    if (imageIds.length >= 3) {
+      return { success: false, reason: "최대 3개까지 투표할 수 있습니다." };
+    }
+
+    const newImageIds = [...imageIds, imageId];
+    await updateDoc(voteRef, { imageIds: newImageIds, votedAt: Timestamp.now() });
+  } else {
+    await setDoc(voteRef, {
+      fingerprint,
+      imageId,
+      imageIds: [imageId],
+      votedAt: Timestamp.now(),
+    });
+  }
 
   // Increment vote count
   const imageRef = doc(db, "contests", contestDate, "images", imageId);
   await updateDoc(imageRef, { voteCount: increment(1) });
 
-  return true;
+  return { success: true };
 }
 
-export async function getUserVote(
+export async function getUserVoteIds(
   contestDate: string,
   fingerprint: string
-): Promise<Vote | null> {
+): Promise<string[]> {
   const voteRef = doc(db, "contests", contestDate, "votes", fingerprint);
   const snap = await getDoc(voteRef);
-  if (!snap.exists()) return null;
-  return snap.data() as Vote;
+  if (!snap.exists()) return [];
+  const data = snap.data();
+  return data.imageIds || (data.imageId ? [data.imageId] : []);
 }
 
 // ===== Admin =====

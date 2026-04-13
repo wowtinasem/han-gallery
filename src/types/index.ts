@@ -21,6 +21,7 @@ export interface ContestImage {
 
 export interface Vote {
   fingerprint: string;
-  imageId: string;
+  imageId: string; // 첫 번째 투표 (하위 호환)
+  imageIds: string[]; // 전체 투표 목록 (최대 3개)
   votedAt: Timestamp;
 }
