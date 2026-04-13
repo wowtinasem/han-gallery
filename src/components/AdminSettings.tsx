@@ -45,30 +45,48 @@ export default function AdminSettings({
     }
   }, [contest]);
 
-  // Auto-start: check every 10 seconds if startTime has been reached
+  // 자동 시작/종료: 10초마다 체크
   useEffect(() => {
-    if (contest.status !== "pending") return;
+    if (contest.status === "ended") return;
 
-    const checkAutoStart = async () => {
-      if (!contest.startTime) return;
-      const st = contest.startTime.toDate();
-      if (new Date() >= st) {
-        try {
-          await updateContestStatus(contest.date, "active");
-          onUpdate();
-        } catch (error) {
-          console.error("Auto-start failed:", error);
+    const checkAutoTransition = async () => {
+      const now = new Date();
+
+      // pending → active: startTime 도달 시
+      if (contest.status === "pending" && contest.startTime) {
+        const st = contest.startTime.toDate();
+        if (now >= st) {
+          try {
+            await updateContestStatus(contest.date, "active");
+            onUpdate();
+            return;
+          } catch (error) {
+            console.error("Auto-start failed:", error);
+          }
+        }
+      }
+
+      // active → ended: endTime 도달 시
+      if (contest.status === "active" && contest.endTime) {
+        const et = contest.endTime.toDate();
+        if (now >= et) {
+          try {
+            await updateContestStatus(contest.date, "ended");
+            onUpdate();
+          } catch (error) {
+            console.error("Auto-end failed:", error);
+          }
         }
       }
     };
 
-    checkAutoStart();
-    timerRef.current = setInterval(checkAutoStart, 10000);
+    checkAutoTransition();
+    timerRef.current = setInterval(checkAutoTransition, 10000);
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [contest.status, contest.startTime, contest.date, onUpdate]);
+  }, [contest.status, contest.startTime, contest.endTime, contest.date, onUpdate]);
 
   function toLocalDatetimeString(date: Date): string {
     const offset = date.getTimezoneOffset() * 60000;
@@ -80,14 +98,33 @@ export default function AdminSettings({
       alert("시작 시간과 종료 시간을 모두 설정해주세요.");
       return;
     }
+    const st = new Date(startTime);
+    const et = new Date(endTime);
+    if (et <= st) {
+      alert("종료 시간은 시작 시간 이후여야 합니다.");
+      return;
+    }
+
     setSaving(true);
     try {
-      await updateContestTimes(
-        contest.date,
-        new Date(startTime),
-        new Date(endTime)
-      );
-      alert("시간이 저장되었습니다.");
+      await updateContestTimes(contest.date, st, et);
+
+      // 시간 저장 후 자동 상태 결정 (이미 ended면 유지)
+      if (contest.status !== "ended") {
+        const now = new Date();
+        if (now >= et) {
+          // 종료 시간이 이미 지남
+          await updateContestStatus(contest.date, "ended");
+        } else if (now >= st) {
+          // 시작 시간이 이미 지남 → 바로 투표 시작
+          await updateContestStatus(contest.date, "active");
+        } else {
+          // 시작 시간 전 → 대기 (자동 시작 예약)
+          await updateContestStatus(contest.date, "pending");
+        }
+      }
+
+      alert("시간이 저장되었습니다. 설정된 시간에 자동으로 시작/종료됩니다.");
       onUpdate();
     } catch (error) {
       console.error(error);
@@ -129,6 +166,24 @@ export default function AdminSettings({
     }
   };
 
+  // 상태 표시 텍스트
+  const statusText = contest.status === "active"
+    ? "투표 진행중"
+    : contest.status === "ended"
+      ? "투표 종료"
+      : "준비중";
+
+  const autoMessage = (() => {
+    if (contest.status === "ended") return null;
+    if (contest.status === "pending" && contest.startTime) {
+      return "(시작 시간이 되면 자동으로 투표가 시작됩니다)";
+    }
+    if (contest.status === "active" && contest.endTime) {
+      return "(종료 시간이 되면 자동으로 투표가 종료됩니다)";
+    }
+    return null;
+  })();
+
   return (
     <div className="bg-white rounded-xl shadow-md p-6 space-y-6">
       <h3 className="font-bold text-lg text-[#1B3A5C]">투표 시간 설정</h3>
@@ -167,7 +222,7 @@ export default function AdminSettings({
       </button>
 
       <div className="border-t pt-4">
-        <h4 className="font-medium text-gray-700 mb-3">투표 상태 관리</h4>
+        <h4 className="font-medium text-gray-700 mb-3">수동 제어</h4>
         <div className="flex gap-3">
           <button
             onClick={() => handleStatusChange("active")}
@@ -195,17 +250,9 @@ export default function AdminSettings({
 
       <p className="text-sm text-gray-500">
         현재 상태:{" "}
-        <span className="font-semibold">
-          {contest.status === "active"
-            ? "투표 진행중"
-            : contest.status === "ended"
-              ? "투표 종료"
-              : "준비중"}
-        </span>
-        {contest.status === "pending" && contest.startTime && (
-          <span className="ml-2 text-blue-500">
-            (시작 시간이 되면 자동으로 투표가 시작됩니다)
-          </span>
+        <span className="font-semibold">{statusText}</span>
+        {autoMessage && (
+          <span className="ml-2 text-blue-500">{autoMessage}</span>
         )}
       </p>
     </div>
