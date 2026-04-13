@@ -157,40 +157,32 @@ export async function deleteContestImage(
 
 // ===== Votes =====
 
+// 투표 슬롯: fingerprint, fingerprint_2, fingerprint_3 (create-only 규칙 호환)
+const VOTE_SLOTS = ["", "_2", "_3"];
+
 export async function castVote(
   contestDate: string,
   fingerprint: string,
   imageId: string
 ): Promise<{ success: boolean; reason?: string }> {
-  const voteRef = doc(db, "contests", contestDate, "votes", fingerprint);
-  const existing = await getDoc(voteRef);
+  // 기존 투표 확인
+  const existingIds = await getUserVoteIds(contestDate, fingerprint);
 
-  if (existing.exists()) {
-    const data = existing.data();
-    const imageIds: string[] = data.imageIds || (data.imageId ? [data.imageId] : []);
-
-    if (imageIds.includes(imageId)) {
-      return { success: false, reason: "이미 이 작품에 투표하셨습니다." };
-    }
-    if (imageIds.length >= 3) {
-      return { success: false, reason: "최대 3개까지 투표할 수 있습니다." };
-    }
-
-    const newImageIds = [...imageIds, imageId];
-    await setDoc(voteRef, {
-      fingerprint,
-      imageId: newImageIds[0],
-      imageIds: newImageIds,
-      votedAt: Timestamp.now(),
-    });
-  } else {
-    await setDoc(voteRef, {
-      fingerprint,
-      imageId,
-      imageIds: [imageId],
-      votedAt: Timestamp.now(),
-    });
+  if (existingIds.includes(imageId)) {
+    return { success: false, reason: "이미 이 작품에 투표하셨습니다." };
   }
+  if (existingIds.length >= 3) {
+    return { success: false, reason: "최대 3개까지 투표할 수 있습니다." };
+  }
+
+  // 빈 슬롯 찾아서 새 문서 생성
+  const slotSuffix = VOTE_SLOTS[existingIds.length]; // 0→"", 1→"_2", 2→"_3"
+  const voteRef = doc(db, "contests", contestDate, "votes", fingerprint + slotSuffix);
+  await setDoc(voteRef, {
+    fingerprint,
+    imageId,
+    votedAt: Timestamp.now(),
+  });
 
   // Increment vote count
   const imageRef = doc(db, "contests", contestDate, "images", imageId);
@@ -203,11 +195,14 @@ export async function getUserVoteIds(
   contestDate: string,
   fingerprint: string
 ): Promise<string[]> {
-  const voteRef = doc(db, "contests", contestDate, "votes", fingerprint);
-  const snap = await getDoc(voteRef);
-  if (!snap.exists()) return [];
-  const data = snap.data();
-  return data.imageIds || (data.imageId ? [data.imageId] : []);
+  const ids: string[] = [];
+  for (const suffix of VOTE_SLOTS) {
+    const snap = await getDoc(doc(db, "contests", contestDate, "votes", fingerprint + suffix));
+    if (snap.exists()) {
+      ids.push(snap.data().imageId);
+    }
+  }
+  return ids;
 }
 
 // ===== Admin =====
