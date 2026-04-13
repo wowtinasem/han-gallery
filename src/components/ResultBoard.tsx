@@ -61,9 +61,9 @@ export default function ResultBoard({ contestDate, isEnded, winnerId, secondPlac
   const rest = images.filter((img) => !rankedIds.includes(img.id));
 
   const rankConfig = [
-    { emoji: "\u{1F947}", label: "1위", gradient: "from-yellow-400 to-yellow-600", ring: "ring-yellow-400", badge: "bg-yellow-400 text-yellow-900" },
-    { emoji: "\u{1F948}", label: "2위", gradient: "from-gray-300 to-gray-500", ring: "ring-gray-400", badge: "bg-gray-400 text-white" },
-    { emoji: "\u{1F949}", label: "3위", gradient: "from-orange-300 to-orange-500", ring: "ring-orange-400", badge: "bg-orange-400 text-white" },
+    { emoji: "\u{1F947}", label: "1위", ring: "ring-yellow-400", badge: "bg-yellow-400 text-yellow-900" },
+    { emoji: "\u{1F948}", label: "2위", ring: "ring-gray-400", badge: "bg-gray-400 text-white" },
+    { emoji: "\u{1F949}", label: "3위", ring: "ring-orange-400", badge: "bg-orange-400 text-white" },
   ];
 
   return (
@@ -79,15 +79,14 @@ export default function ResultBoard({ contestDate, isEnded, winnerId, secondPlac
               </span>
             </div>
             <div className={`bg-white rounded-2xl shadow-xl overflow-hidden ring-4 ${rankConfig[0].ring} max-w-lg mx-auto`}>
-              <div className="relative aspect-square">
-                <Image
-                  src={rankedImages[0].imageUrl}
-                  alt={rankedImages[0].nickname}
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 768px) 100vw, 500px"
-                />
-              </div>
+              <Image
+                src={rankedImages[0].imageUrl}
+                alt={rankedImages[0].nickname}
+                width={0}
+                height={0}
+                sizes="(max-width: 768px) 100vw, 500px"
+                className="w-full h-auto"
+              />
               <div className="p-4 text-center">
                 <p className="font-bold text-lg text-gray-800">
                   #{String(rankedImages[0].number).padStart(2, "0")} {rankedImages[0].nickname}
@@ -99,7 +98,7 @@ export default function ResultBoard({ contestDate, isEnded, winnerId, secondPlac
 
         {/* 2위, 3위 - 나란히 */}
         {rankedImages.length > 1 && (
-          <div className="grid grid-cols-2 gap-4 max-w-2xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl mx-auto">
             {rankedImages.slice(1).map((img, idx) => {
               const cfg = rankConfig[idx + 1];
               return (
@@ -110,15 +109,14 @@ export default function ResultBoard({ contestDate, isEnded, winnerId, secondPlac
                     </span>
                   </div>
                   <div className={`bg-white rounded-xl shadow-lg overflow-hidden ring-3 ${cfg.ring}`}>
-                    <div className="relative aspect-square">
-                      <Image
-                        src={img.imageUrl}
-                        alt={img.nickname}
-                        fill
-                        className="object-cover"
-                        sizes="(max-width: 640px) 50vw, 300px"
-                      />
-                    </div>
+                    <Image
+                      src={img.imageUrl}
+                      alt={img.nickname}
+                      width={0}
+                      height={0}
+                      sizes="(max-width: 640px) 100vw, 300px"
+                      className="w-full h-auto"
+                    />
                     <div className="p-3 text-center">
                       <p className="font-bold text-sm text-gray-800">
                         #{String(img.number).padStart(2, "0")} {img.nickname}
@@ -144,21 +142,17 @@ export default function ResultBoard({ contestDate, isEnded, winnerId, secondPlac
                 key={image.id}
                 className="bg-white rounded-xl shadow-md overflow-hidden"
               >
-                <div className="relative aspect-square">
-                  <Image
-                    src={image.imageUrl}
-                    alt={image.nickname}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 33vw, 20vw"
-                  />
-                  <div className="absolute top-2 left-2 bg-black/60 text-white text-xs font-bold px-2 py-1 rounded-md">
-                    #{String(image.number).padStart(2, "0")}
-                  </div>
-                </div>
+                <Image
+                  src={image.imageUrl}
+                  alt={image.nickname}
+                  width={0}
+                  height={0}
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 33vw, 20vw"
+                  className="w-full h-auto"
+                />
                 <div className="p-3 text-center">
                   <p className="font-medium text-sm text-gray-800 truncate">
-                    {image.nickname}
+                    #{String(image.number).padStart(2, "0")} {image.nickname}
                   </p>
                 </div>
               </div>

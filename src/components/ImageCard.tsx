@@ -22,13 +22,14 @@ export default function ImageCard({
         isVoted ? "ring-3 ring-[#2E75B6]" : ""
       }`}
     >
-      <div className="relative aspect-square">
+      <div className="relative">
         <Image
           src={image.imageUrl}
           alt={`${image.nickname}의 작품`}
-          fill
-          className="object-cover"
-          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+          width={0}
+          height={0}
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 33vw, 20vw"
+          className="w-full h-auto"
           loading="lazy"
         />
         <div className="absolute top-2 left-2 bg-black/60 text-white text-xs font-bold px-2 py-1 rounded-md">

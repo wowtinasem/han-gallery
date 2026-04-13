@@ -47,13 +47,14 @@ function GalleryView({
               key={img.id}
               className={`bg-white rounded-xl shadow-md overflow-hidden ring-2 ${rankColors[idx].ring}`}
             >
-              <div className="relative aspect-square">
+              <div className="relative">
                 <Image
                   src={img.imageUrl}
                   alt={img.nickname}
-                  fill
-                  className="object-cover"
+                  width={0}
+                  height={0}
                   sizes="(max-width: 640px) 100vw, 33vw"
+                  className="w-full h-auto"
                 />
                 <div className={`absolute top-2 left-2 ${rankColors[idx].badge} text-xs font-bold px-2.5 py-1 rounded-full`}>
                   {trophyEmoji[idx]} {idx + 1}위
@@ -81,21 +82,17 @@ function GalleryView({
                 key={img.id}
                 className="bg-white rounded-xl shadow-md overflow-hidden"
               >
-                <div className="relative aspect-square">
-                  <Image
-                    src={img.imageUrl}
-                    alt={img.nickname}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 33vw, 20vw"
-                  />
-                  <div className="absolute top-2 left-2 bg-black/60 text-white text-xs font-bold px-2 py-1 rounded-md">
-                    #{String(img.number).padStart(2, "0")}
-                  </div>
-                </div>
+                <Image
+                  src={img.imageUrl}
+                  alt={img.nickname}
+                  width={0}
+                  height={0}
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 33vw, 20vw"
+                  className="w-full h-auto"
+                />
                 <div className="p-3 text-center">
                   <p className="font-medium text-sm text-gray-800 truncate">
-                    {img.nickname}
+                    #{String(img.number).padStart(2, "0")} {img.nickname}
                   </p>
                 </div>
               </div>
@@ -143,8 +140,7 @@ export default function ArchiveList() {
 
         // 마지막 콘테스트 자동 선택
         if (ended.length > 0) {
-          const latest = ended[0]; // createdAt 내림차순
-          // 캘린더를 해당 월로 이동
+          const latest = ended[0];
           const [y, m] = latest.date.split("-").map(Number);
           setCalendarYear(y);
           setCalendarMonth(m - 1);
@@ -160,7 +156,7 @@ export default function ArchiveList() {
   }, []);
 
   const handleSelectDate = async (dateStr: string) => {
-    if (selectedDate === dateStr) return; // 같은 날짜 재클릭 무시
+    if (selectedDate === dateStr) return;
     await loadGallery(dateStr, archiveList);
   };
 
