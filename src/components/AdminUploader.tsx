@@ -61,6 +61,40 @@ export default function AdminUploader({
     });
   };
 
+  const uploadOne = async (f: FileWithPreview, number: number): Promise<string | null> => {
+    try {
+      const formData = new FormData();
+      formData.append("file", f.file);
+      formData.append("nickname", f.nickname);
+      formData.append("contestDate", contestDate);
+      formData.append("number", String(number));
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `HTTP ${res.status}`);
+      }
+
+      const data = await res.json();
+
+      await addContestImage(contestDate, {
+        number,
+        nickname: f.nickname,
+        imageUrl: data.imageUrl,
+        voteCount: 0,
+      });
+
+      return null; // 성공
+    } catch (err) {
+      console.error(`Upload failed for ${f.file.name}:`, err);
+      return f.file.name; // 실패한 파일명 반환
+    }
+  };
+
   const handleUpload = async () => {
     if (files.length === 0) return;
     if (files.some((f) => !f.nickname.trim())) {
@@ -72,43 +106,19 @@ export default function AdminUploader({
     setProgress(0);
 
     const failed: string[] = [];
+    const CONCURRENCY = 5;
+    let completed = 0;
 
     try {
-      for (let i = 0; i < files.length; i++) {
-        const f = files[i];
-        const number = existingCount + i + 1;
-
-        try {
-          const formData = new FormData();
-          formData.append("file", f.file);
-          formData.append("nickname", f.nickname);
-          formData.append("contestDate", contestDate);
-          formData.append("number", String(number));
-
-          const res = await fetch("/api/upload", {
-            method: "POST",
-            body: formData,
-          });
-
-          if (!res.ok) {
-            const errData = await res.json().catch(() => ({}));
-            throw new Error(errData.error || `HTTP ${res.status}`);
-          }
-
-          const data = await res.json();
-
-          await addContestImage(contestDate, {
-            number,
-            nickname: f.nickname,
-            imageUrl: data.imageUrl,
-            voteCount: 0,
-          });
-        } catch (err) {
-          console.error(`Upload failed for ${f.file.name}:`, err);
-          failed.push(f.file.name);
-        }
-
-        setProgress(i + 1);
+      // 5개씩 병렬 업로드
+      for (let i = 0; i < files.length; i += CONCURRENCY) {
+        const batch = files.slice(i, i + CONCURRENCY);
+        const results = await Promise.all(
+          batch.map((f, idx) => uploadOne(f, existingCount + i + idx + 1))
+        );
+        results.forEach((r) => { if (r) failed.push(r); });
+        completed += batch.length;
+        setProgress(completed);
       }
 
       // Cleanup
