@@ -11,8 +11,6 @@ import {
   getContestList,
   deleteContest,
   updateContestStatus,
-  setContestWinner,
-  clearContestRank,
 } from "@/lib/firestore";
 import AdminUploader from "@/components/AdminUploader";
 import AdminSettings from "@/components/AdminSettings";
@@ -39,7 +37,6 @@ export default function AdminPage() {
   const [calendarMonth, setCalendarMonth] = useState(new Date().getMonth());
   const [calendarYear, setCalendarYear] = useState(new Date().getFullYear());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [selectingRank, setSelectingRank] = useState<1 | 2 | 3>(1);
 
   // Check session
   useEffect(() => {
@@ -142,34 +139,6 @@ export default function AdminPage() {
     } catch (error) {
       console.error(error);
       alert("삭제 실패");
-    }
-  };
-
-  const rankLabels: Record<number, string> = { 1: "1위", 2: "2위", 3: "3위" };
-
-  const handleSelectWinner = async (imageId: string, nickname: string) => {
-    if (!contest) return;
-    const label = rankLabels[selectingRank];
-    if (!confirm(`#${nickname} 작품을 최종 ${label}로 선택하시겠습니까?`)) return;
-    try {
-      await setContestWinner(contest.date, imageId, selectingRank);
-      await loadContestData();
-      alert(`최종 ${label}가 선택되었습니다.`);
-    } catch (error) {
-      console.error(error);
-      alert("선택 실패");
-    }
-  };
-
-  const handleClearRank = async (rank: 1 | 2 | 3) => {
-    if (!contest) return;
-    if (!confirm(`${rankLabels[rank]} 선택을 해제하시겠습니까?`)) return;
-    try {
-      await clearContestRank(contest.date, rank);
-      await loadContestData();
-    } catch (error) {
-      console.error(error);
-      alert("해제 실패");
     }
   };
 
@@ -448,112 +417,6 @@ export default function AdminPage() {
               </div>
             )}
           </>
-        )}
-
-        {/* Winner Selection - shown when contest is ended */}
-        {contest && contest.status === "ended" && images.length > 0 && (
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <h3 className="font-bold text-lg text-[#1B3A5C] mb-2">
-              최종 순위 선택
-            </h3>
-
-            {/* Current Selections Summary */}
-            <div className="flex flex-wrap gap-2 mb-4">
-              {([1, 2, 3] as const).map((rank) => {
-                const fieldId = rank === 1 ? contest.winnerId : rank === 2 ? contest.secondPlaceId : contest.thirdPlaceId;
-                const img = fieldId ? images.find((i) => i.id === fieldId) : null;
-                const colors = rank === 1 ? "bg-yellow-100 text-yellow-800 border-yellow-300" : rank === 2 ? "bg-gray-100 text-gray-700 border-gray-300" : "bg-orange-100 text-orange-800 border-orange-300";
-                return (
-                  <div key={rank} className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-semibold ${colors}`}>
-                    <span>{rank === 1 ? "\u{1F947}" : rank === 2 ? "\u{1F948}" : "\u{1F949}"} {rank}위:</span>
-                    {img ? (
-                      <>
-                        <span>#{String(img.number).padStart(2, "0")} {img.nickname}</span>
-                        <button onClick={() => handleClearRank(rank)} className="ml-1 text-red-400 hover:text-red-600">×</button>
-                      </>
-                    ) : (
-                      <span className="text-gray-400">미선택</span>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Rank Selection Tabs */}
-            <div className="flex gap-2 mb-4">
-              {([1, 2, 3] as const).map((rank) => (
-                <button
-                  key={rank}
-                  onClick={() => setSelectingRank(rank)}
-                  className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-colors ${
-                    selectingRank === rank
-                      ? rank === 1 ? "bg-yellow-400 text-yellow-900" : rank === 2 ? "bg-gray-400 text-white" : "bg-orange-400 text-white"
-                      : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-                  }`}
-                >
-                  {rank === 1 ? "\u{1F947}" : rank === 2 ? "\u{1F948}" : "\u{1F949}"} {rank}위 선택
-                </button>
-              ))}
-            </div>
-
-            <p className="text-sm text-gray-500 mb-4">
-              이미지를 클릭하면 <span className="font-bold">{selectingRank}위</span>로 선택됩니다.
-            </p>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-              {images.map((image) => {
-                const imageRank = contest.winnerId === image.id ? 1 : contest.secondPlaceId === image.id ? 2 : contest.thirdPlaceId === image.id ? 3 : 0;
-                const ringColor = imageRank === 1 ? "ring-4 ring-yellow-400 shadow-lg" : imageRank === 2 ? "ring-4 ring-gray-400 shadow-lg" : imageRank === 3 ? "ring-4 ring-orange-400 shadow-lg" : "hover:ring-2 hover:ring-[#2E75B6]";
-                const badgeColor = imageRank === 1 ? "bg-yellow-400 text-yellow-900" : imageRank === 2 ? "bg-gray-400 text-white" : "bg-orange-400 text-white";
-                const emoji = imageRank === 1 ? "\u{1F947}" : imageRank === 2 ? "\u{1F948}" : "\u{1F949}";
-
-                return (
-                  <button
-                    key={image.id}
-                    onClick={() =>
-                      image.id &&
-                      handleSelectWinner(
-                        image.id,
-                        `${String(image.number).padStart(2, "0")} ${image.nickname}`
-                      )
-                    }
-                    className={`relative bg-gray-50 rounded-lg overflow-hidden text-left transition-all ${ringColor}`}
-                  >
-                    <div className="relative aspect-square">
-                      <Image
-                        src={image.imageUrl}
-                        alt={image.nickname}
-                        fill
-                        className="object-cover"
-                        sizes="(max-width: 640px) 50vw, 25vw"
-                      />
-                      {imageRank > 0 && (
-                        <div className={`absolute inset-0 ${imageRank === 1 ? "bg-yellow-400/20" : imageRank === 2 ? "bg-gray-400/20" : "bg-orange-400/20"} flex items-center justify-center`}>
-                          <span className="text-4xl">{emoji}</span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="p-2">
-                      <p className="text-xs font-bold text-[#2E75B6]">
-                        #{String(image.number).padStart(2, "0")}
-                      </p>
-                      <p className="text-xs text-gray-600 truncate">
-                        {image.nickname}
-                      </p>
-                      <p className="text-xs text-gray-400">
-                        {image.voteCount}표
-                      </p>
-                    </div>
-                    {imageRank > 0 && (
-                      <div className={`absolute top-1 left-1 ${badgeColor} text-[10px] font-bold px-2 py-0.5 rounded-full`}>
-                        {imageRank}위
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
         )}
 
         {/* Archive Management - Calendar */}

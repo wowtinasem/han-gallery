@@ -6,9 +6,6 @@ export interface Contest {
   startTime: Timestamp;
   endTime: Timestamp;
   createdAt: Timestamp;
-  winnerId?: string;
-  secondPlaceId?: string;
-  thirdPlaceId?: string;
 }
 
 export interface ContestImage {

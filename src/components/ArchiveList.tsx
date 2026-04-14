@@ -12,8 +12,24 @@ const rankColors = [
   { ring: "ring-orange-400", badge: "bg-orange-400 text-white" },
 ];
 
+interface RankedImage extends ContestImage {
+  rank: number;
+}
+
+function computeRankings(images: ContestImage[]): RankedImage[] {
+  const sorted = [...images].sort((a, b) => b.voteCount - a.voteCount);
+  const result: RankedImage[] = [];
+  let currentRank = 1;
+  for (let i = 0; i < sorted.length; i++) {
+    if (i > 0 && sorted[i].voteCount < sorted[i - 1].voteCount) {
+      currentRank = i + 1;
+    }
+    result.push({ ...sorted[i], rank: currentRank });
+  }
+  return result;
+}
+
 function GalleryView({
-  contest,
   images,
 }: {
   contest: (Contest & { id: string }) | null;
@@ -27,57 +43,55 @@ function GalleryView({
     );
   }
 
-  const rankedIds = [
-    contest?.winnerId,
-    contest?.secondPlaceId,
-    contest?.thirdPlaceId,
-  ].filter(Boolean);
-  const rankedImages = rankedIds
-    .map((id) => images.find((img) => img.id === id))
-    .filter((img): img is ContestImage => !!img);
-  const restImages = images.filter((img) => !rankedIds.includes(img.id));
+  const ranked = computeRankings(images);
+  const podium = ranked.filter((img) => img.rank <= 3);
+  const rest = ranked.filter((img) => img.rank > 3);
 
   return (
     <div className="space-y-6">
       {/* 1/2/3위 */}
-      {rankedImages.length > 0 && (
+      {podium.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {rankedImages.map((img, idx) => (
-            <div
-              key={img.id}
-              className={`bg-white rounded-xl shadow-md overflow-hidden ring-2 ${rankColors[idx].ring}`}
-            >
-              <div className="relative">
-                <Image
-                  src={img.imageUrl}
-                  alt={img.nickname}
-                  width={0}
-                  height={0}
-                  sizes="(max-width: 640px) 100vw, 33vw"
-                  className="w-full h-auto"
-                />
-                <div className={`absolute top-2 left-2 ${rankColors[idx].badge} text-xs font-bold px-2.5 py-1 rounded-full`}>
-                  {trophyEmoji[idx]} {idx + 1}위
+          {podium.map((img) => {
+            const cfg = rankColors[Math.min(img.rank - 1, 2)];
+            return (
+              <div
+                key={img.id}
+                className={`bg-white rounded-xl shadow-md overflow-hidden ring-2 ${cfg.ring}`}
+              >
+                <div className="relative">
+                  <Image
+                    src={img.imageUrl}
+                    alt={img.nickname}
+                    width={0}
+                    height={0}
+                    sizes="(max-width: 640px) 100vw, 33vw"
+                    className="w-full h-auto"
+                  />
+                  <div className={`absolute top-2 left-2 ${cfg.badge} text-xs font-bold px-2.5 py-1 rounded-full`}>
+                    {trophyEmoji[Math.min(img.rank - 1, 2)]} {img.rank}위
+                  </div>
+                </div>
+                <div className="p-3 text-center">
+                  <p className="font-bold text-sm text-gray-800">
+                    #{String(img.number).padStart(2, "0")} {img.nickname}
+                  </p>
+                  <p className="text-xs text-orange-500 font-semibold mt-1">{img.voteCount}표</p>
                 </div>
               </div>
-              <div className="p-3 text-center">
-                <p className="font-bold text-sm text-gray-800">
-                  #{String(img.number).padStart(2, "0")} {img.nickname}
-                </p>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
       {/* 전체 작품 */}
-      {restImages.length > 0 && (
+      {rest.length > 0 && (
         <>
           <h3 className="text-sm font-bold text-gray-500 text-center">
             전체 작품 ({images.length}개)
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-            {restImages.map((img) => (
+            {rest.map((img) => (
               <div
                 key={img.id}
                 className="bg-white rounded-xl shadow-md overflow-hidden"
@@ -94,6 +108,7 @@ function GalleryView({
                   <p className="font-medium text-sm text-gray-800 truncate">
                     #{String(img.number).padStart(2, "0")} {img.nickname}
                   </p>
+                  <p className="text-xs text-gray-400">{img.voteCount}표</p>
                 </div>
               </div>
             ))}

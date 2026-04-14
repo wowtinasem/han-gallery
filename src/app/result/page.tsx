@@ -54,7 +54,7 @@ export default function ResultPage() {
           </p>
         )}
       </div>
-      <ResultBoard contestDate={contest.date} isEnded={contest.status === "ended"} winnerId={contest.winnerId} secondPlaceId={contest.secondPlaceId} thirdPlaceId={contest.thirdPlaceId} />
+      <ResultBoard contestDate={contest.date} isEnded={contest.status === "ended"} />
     </div>
   );
 }

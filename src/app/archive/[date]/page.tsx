@@ -60,7 +60,7 @@ export default function ArchiveDetailPage() {
         <h1 className="text-3xl font-bold mb-2">{date} 콘테스트</h1>
         <p className="text-blue-200">최종 결과</p>
       </div>
-      <ResultBoard contestDate={date} isEnded={contest.status === "ended"} winnerId={contest.winnerId} secondPlaceId={contest.secondPlaceId} thirdPlaceId={contest.thirdPlaceId} />
+      <ResultBoard contestDate={date} isEnded={contest.status === "ended"} />
     </div>
   );
 }
