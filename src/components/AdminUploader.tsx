@@ -71,32 +71,42 @@ export default function AdminUploader({
     setUploading(true);
     setProgress(0);
 
+    const failed: string[] = [];
+
     try {
       for (let i = 0; i < files.length; i++) {
         const f = files[i];
         const number = existingCount + i + 1;
 
-        const formData = new FormData();
-        formData.append("file", f.file);
-        formData.append("nickname", f.nickname);
-        formData.append("contestDate", contestDate);
-        formData.append("number", String(number));
+        try {
+          const formData = new FormData();
+          formData.append("file", f.file);
+          formData.append("nickname", f.nickname);
+          formData.append("contestDate", contestDate);
+          formData.append("number", String(number));
 
-        const res = await fetch("/api/upload", {
-          method: "POST",
-          body: formData,
-        });
+          const res = await fetch("/api/upload", {
+            method: "POST",
+            body: formData,
+          });
 
-        if (!res.ok) throw new Error("Upload failed");
+          if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.error || `HTTP ${res.status}`);
+          }
 
-        const data = await res.json();
+          const data = await res.json();
 
-        await addContestImage(contestDate, {
-          number,
-          nickname: f.nickname,
-          imageUrl: data.imageUrl,
-          voteCount: 0,
-        });
+          await addContestImage(contestDate, {
+            number,
+            nickname: f.nickname,
+            imageUrl: data.imageUrl,
+            voteCount: 0,
+          });
+        } catch (err) {
+          console.error(`Upload failed for ${f.file.name}:`, err);
+          failed.push(f.file.name);
+        }
 
         setProgress(i + 1);
       }
@@ -105,6 +115,10 @@ export default function AdminUploader({
       files.forEach((f) => URL.revokeObjectURL(f.preview));
       setFiles([]);
       onUploadComplete();
+
+      if (failed.length > 0) {
+        alert(`${files.length - failed.length}개 성공, ${failed.length}개 실패:\n${failed.join("\n")}`);
+      }
     } catch (error) {
       console.error("Upload error:", error);
       alert("업로드 중 오류가 발생했습니다.");

@@ -20,15 +20,15 @@ export async function POST(request: NextRequest) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // Upload to Cloudinary
+    // Upload to Cloudinary (원본 비율 유지, 최대 2048px)
     const result = await new Promise<{ secure_url: string }>(
       (resolve, reject) => {
         cloudinary.uploader
           .upload_stream(
             {
               folder: `han-gallery/${contestDate}`,
-              transformation: [{ width: 1024, crop: "limit" }],
               resource_type: "image",
+              transformation: [{ width: 2048, crop: "limit", quality: "auto" }],
             },
             (error, result) => {
               if (error) reject(error);
@@ -46,8 +46,9 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Upload error:", error);
+    const message = error instanceof Error ? error.message : "Upload failed";
     return NextResponse.json(
-      { error: "Upload failed" },
+      { error: message },
       { status: 500 }
     );
   }
