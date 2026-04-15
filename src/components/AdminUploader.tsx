@@ -61,10 +61,37 @@ export default function AdminUploader({
     });
   };
 
+  const resizeImage = (file: File, maxWidth: number = 2048): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+      const img = document.createElement("img");
+      img.onload = () => {
+        // 이미 작으면 원본 그대로
+        if (img.width <= maxWidth && file.size <= 5 * 1024 * 1024) {
+          resolve(file);
+          return;
+        }
+        const canvas = document.createElement("canvas");
+        const ratio = Math.min(maxWidth / img.width, 1);
+        canvas.width = img.width * ratio;
+        canvas.height = img.height * ratio;
+        const ctx = canvas.getContext("2d")!;
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(
+          (blob) => (blob ? resolve(blob) : reject(new Error("Canvas toBlob failed"))),
+          "image/jpeg",
+          0.9
+        );
+      };
+      img.onerror = () => reject(new Error("Image load failed"));
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
   const uploadOne = async (f: FileWithPreview, number: number): Promise<string | null> => {
     try {
+      const resized = await resizeImage(f.file);
       const formData = new FormData();
-      formData.append("file", f.file);
+      formData.append("file", new File([resized], f.file.name, { type: "image/jpeg" }));
       formData.append("nickname", f.nickname);
       formData.append("contestDate", contestDate);
       formData.append("number", String(number));
