@@ -29,20 +29,7 @@ export default function ImageGallery({
 
       const fp = await getFingerprint();
       const ids = await getUserVoteIds(contestDate, fp);
-      if (ids.length > 0) {
-        setVotedIds(ids);
-      } else {
-        // localStorage 백업 확인 (하위 호환)
-        const localVote = localStorage.getItem(`vote_${contestDate}`);
-        if (localVote) {
-          try {
-            const parsed = JSON.parse(localVote);
-            setVotedIds(Array.isArray(parsed) ? parsed : [parsed]);
-          } catch {
-            setVotedIds([localVote]);
-          }
-        }
-      }
+      setVotedIds(ids);
     } catch (error) {
       console.error("Failed to load images:", error);
     } finally {
@@ -68,7 +55,6 @@ export default function ImageGallery({
       if (result.success) {
         const newVotedIds = [...votedIds, imageId];
         setVotedIds(newVotedIds);
-        localStorage.setItem(`vote_${contestDate}`, JSON.stringify(newVotedIds));
         const imgs = await getContestImages(contestDate);
         setImages(imgs);
       } else {
