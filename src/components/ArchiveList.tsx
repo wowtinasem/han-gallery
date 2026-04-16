@@ -47,6 +47,10 @@ function GalleryView({
   const podium = ranked.filter((img) => img.rank <= 3);
   const rest = ranked.filter((img) => img.rank > 3);
 
+  const totalVotes = images.reduce((sum, img) => sum + img.voteCount, 0);
+  const getPct = (count: number) =>
+    totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
+
   return (
     <div className="space-y-6">
       {/* 1/2/3위 */}
@@ -76,7 +80,7 @@ function GalleryView({
                   <p className="font-bold text-sm text-gray-800">
                     #{String(img.number).padStart(2, "0")} {img.nickname}
                   </p>
-                  <p className="text-xs text-orange-500 font-semibold mt-1">{img.voteCount}표</p>
+                  <p className="text-xs text-orange-500 font-semibold mt-1">{getPct(img.voteCount)}%</p>
                 </div>
               </div>
             );
@@ -108,7 +112,7 @@ function GalleryView({
                   <p className="font-medium text-sm text-gray-800 truncate">
                     #{String(img.number).padStart(2, "0")} {img.nickname}
                   </p>
-                  <p className="text-xs text-gray-400">{img.voteCount}표</p>
+                  <p className="text-xs text-gray-400">{getPct(img.voteCount)}%</p>
                 </div>
               </div>
             ))}
