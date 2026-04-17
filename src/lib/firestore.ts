@@ -184,9 +184,9 @@ export async function castVote(
     votedAt: Timestamp.now(),
   });
 
-  // Increment vote count
+  // Increment vote count (클릭당 3점)
   const imageRef = doc(db, "contests", contestDate, "images", imageId);
-  await updateDoc(imageRef, { voteCount: increment(1) });
+  await updateDoc(imageRef, { voteCount: increment(3) });
 
   return { success: true };
 }

@@ -71,11 +71,8 @@ export default function ResultBoard({ contestDate, isEnded }: ResultBoardProps) 
   const top1 = ranked.filter((img) => img.rank === 1);
   const top2 = ranked.filter((img) => img.rank === 2);
   const top3 = ranked.filter((img) => img.rank === 3);
+  const podium = ranked.filter((img) => img.rank <= 3);
   const rest = ranked.filter((img) => img.rank > 3);
-
-  const totalVotes = images.reduce((sum, img) => sum + img.voteCount, 0);
-  const getPct = (count: number) =>
-    totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
 
   const rankConfig: Record<number, { emoji: string; label: string; ring: string; badge: string }> = {
     1: { emoji: "\u{1F947}", label: "1위", ring: "ring-yellow-400", badge: "bg-yellow-400 text-yellow-900" },
@@ -112,7 +109,7 @@ export default function ResultBoard({ contestDate, isEnded }: ResultBoardProps) 
                   <p className="font-bold text-lg text-gray-800">
                     #{String(img.number).padStart(2, "0")} {img.nickname}
                   </p>
-                  <p className="text-sm text-orange-500 font-semibold mt-1">{getPct(img.voteCount)}%</p>
+                  <p className="text-sm text-orange-500 font-semibold mt-1">{img.voteCount}표</p>
                 </div>
               </div>
             ))}
@@ -144,7 +141,7 @@ export default function ResultBoard({ contestDate, isEnded }: ResultBoardProps) 
                 <p className="font-bold text-sm text-gray-800">
                   #{String(img.number).padStart(2, "0")} {img.nickname}
                 </p>
-                <p className="text-xs text-orange-500 font-semibold mt-1">{getPct(img.voteCount)}%</p>
+                <p className="text-xs text-orange-500 font-semibold mt-1">{img.voteCount}표</p>
               </div>
             </div>
           ))}
@@ -186,7 +183,7 @@ export default function ResultBoard({ contestDate, isEnded }: ResultBoardProps) 
                   <p className="font-medium text-sm text-gray-800 truncate">
                     #{String(image.number).padStart(2, "0")} {image.nickname}
                   </p>
-                  <p className="text-xs text-gray-400">{getPct(image.voteCount)}%</p>
+                  <p className="text-xs text-gray-400">{image.voteCount}표</p>
                 </div>
               </div>
             ))}
