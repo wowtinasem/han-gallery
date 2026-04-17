@@ -109,7 +109,7 @@ export default function ResultBoard({ contestDate, isEnded }: ResultBoardProps) 
                   <p className="font-bold text-lg text-gray-800">
                     #{String(img.number).padStart(2, "0")} {img.nickname}
                   </p>
-                  <p className="text-sm text-orange-500 font-semibold mt-1">{img.voteCount}표</p>
+                  <p className="text-sm text-orange-500 font-semibold mt-1">{img.voteCount * 3}표</p>
                 </div>
               </div>
             ))}
@@ -141,7 +141,7 @@ export default function ResultBoard({ contestDate, isEnded }: ResultBoardProps) 
                 <p className="font-bold text-sm text-gray-800">
                   #{String(img.number).padStart(2, "0")} {img.nickname}
                 </p>
-                <p className="text-xs text-orange-500 font-semibold mt-1">{img.voteCount}표</p>
+                <p className="text-xs text-orange-500 font-semibold mt-1">{img.voteCount * 3}표</p>
               </div>
             </div>
           ))}
@@ -183,7 +183,7 @@ export default function ResultBoard({ contestDate, isEnded }: ResultBoardProps) 
                   <p className="font-medium text-sm text-gray-800 truncate">
                     #{String(image.number).padStart(2, "0")} {image.nickname}
                   </p>
-                  <p className="text-xs text-gray-400">{image.voteCount}표</p>
+                  <p className="text-xs text-gray-400">{image.voteCount * 3}표</p>
                 </div>
               </div>
             ))}

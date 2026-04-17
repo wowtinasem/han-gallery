@@ -76,7 +76,7 @@ function GalleryView({
                   <p className="font-bold text-sm text-gray-800">
                     #{String(img.number).padStart(2, "0")} {img.nickname}
                   </p>
-                  <p className="text-xs text-orange-500 font-semibold mt-1">{img.voteCount}표</p>
+                  <p className="text-xs text-orange-500 font-semibold mt-1">{img.voteCount * 3}표</p>
                 </div>
               </div>
             );
@@ -108,7 +108,7 @@ function GalleryView({
                   <p className="font-medium text-sm text-gray-800 truncate">
                     #{String(img.number).padStart(2, "0")} {img.nickname}
                   </p>
-                  <p className="text-xs text-gray-400">{img.voteCount}표</p>
+                  <p className="text-xs text-gray-400">{img.voteCount * 3}표</p>
                 </div>
               </div>
             ))}
